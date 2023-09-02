@@ -1,0 +1,283 @@
+---
+title: "Informe práctico 2"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(maps)
+library(mapdata)
+library(ggplot2)
+library(ggrepel)
+library(tidyverse)
+library(ggthemes)
+library(knitr)
+#library(kableExtra)
+knitr::opts_chunk$set(echo = TRUE)
+
+meteoritos <- readr::read_csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2019/2019-06-11/meteorites.csv")
+
+
+```
+
+La base de datos `meteoritos` contiene información de impactos de meteoritos y su fuente es la NASA. Incluye información sobre más de 45.000 meteoritos, incluyendo su nombre, ubicación, masa y año de impacto. 
+
+### **Parte 1**
+
+**Pregunta:** ¿Cuál es la distribución geográfica de los meteoritos y donde cayeron los más pesados? 
+
+
+**Introducción:** Para responder a la preguntar observamos nuestros conjunto de de datos en relacion a distribucion geografica y el tamaño de los meteoritos para tambien ubicar donde cayeron los mas pesados
+
+**Enfoque:** Empleamos los graficos espaciales para poder visualizar en forrma clara la distribucion geografica de donde cayeron los metioritos y sus ejes son "x" siendo su latitud y "y" siendo su longitud, decidi representar tantos los meterioritos encontrado y visto caer y encontrados por que en ambos casos los meterioritos cayeron a la tierra y fueron encontrados. Eliminamos los datos faltantes para poder trabajar con los datos completos ejemplo los que no tenia masa o lo que ubicacion geografica definida no iba representarte en el grafico en forma completa.
+
+
+Tambien nos interesa investigar la distribucion geografica y su cantidad por continente usamos geom bar para poder representar la cantidad de meterioritos segun su cantinente: hace que la altura del eje “y” siendo la Cantidad sea proporcional al eje “x” su Continente.
+En este grafico solo los datos nulos de latitud y longitud se omiten ya que se desconoce la ubicacion del meteorito y no se puede saber su continente y los otros datos nulos no interifieren a lo que queremos desmostrar.
+
+
+**Analisis:**
+
+
+
+```{r mapa-distribucion-meteoritos, fig.alt="Mapa del mundo mostrando de color los meteoritos que fueron encontrado y los visto caer que a su vez fueron encontrado y su el peso de meteoritos que va desde 0 hasta 60000000. Que el meteorito mas pesado en encuentra en Africa y los segundos mas grande en America. Siendo el contiente Americano el que posee mayor cantidad de meteoritos mas pesados por contiente. Si analizamos la cantidad America la mayor parte de meterioritos fueron encontrados al igual que Antartida, Oceania en Europa y Asia varia un poco mas y en la India es un caso curiosio ya que la mayoria de meterioritos se vio caer y fueron encontrados."}
+
+mapa <- map_data("world")
+
+
+
+meteoritos_mapa <- meteoritos %>%
+    drop_na() %>% 
+mutate(fall = if_else(str_starts(fall, "Fel"), "Visto caer y encontrado", fall)) %>% 
+  mutate(fall = if_else(str_starts(fall, "Foun"), "Encontrado", fall))
+
+
+options(scipen = 999) 
+
+
+ggplot(mapa, aes(x = long, y = lat)) +
+  geom_polygon(aes( x= long, y = lat, group = group),fill = "grey80",color = "white") +
+  geom_point(data= meteoritos_mapa,
+             aes(x=long, y = lat, size = mass/1000, color = fall), stroke = F, alpha = 1/2) +
+  geom_text(data = subset(meteoritos_mapa, mass >=26000000), aes(label = name), hjust = 1, nudge_x = 0.2, size = 2)+
+  scale_color_manual(values = c( "red", "blue"), name = "Meteoritos") + 
+  scale_size_continuous(name = "Kg")  +
+  theme_pander()+
+  theme(panel.background = element_rect(colour= "black", size= 1))+
+    labs(title = "Distribución geográfica de los meteoritos"
+    ,y = "Latitud",
+       x = "Longitud",
+       caption = "Base de datos de meteoritos de la NASA.")
+
+
+
+```
+
+```{r grafico-cantidad-continente, fig.alt="Grafico mostrando el número de mateoritos segun su continente, desde 433 meterioritos hasta 14269 meterioritos. La mayor parte de los meterioritos se encuentra en la Antartida con 14269, Africa con 8968, Asia con 3623 y America con 2372. También se muestran con menos cantidad de meterioritos Oceania con 671 y Europa con 433."}
+
+meteoritos2 <- readr::read_csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2019/2019-06-11/meteorites.csv")
+
+meteoritosfn <- meteoritos2[!is.na(meteoritos2$lat),]
+meteoritosfn <- meteoritosfn[!is.na(meteoritosfn$long),]
+
+meteoritos_Europa <- meteoritosfn %>%
+  filter(between(long, -12, 25),
+         between(lat, 37, 65)) %>%
+  arrange(mass)
+
+car<-read.table(header=TRUE,text="
+Continente 
+Europa
+")
+
+ContinenteEuropa = cbind(meteoritos_Europa, car)
+
+
+meteoritos_America <- meteoritosfn %>%
+  filter(between(long, -165,-27),
+         between(lat, -57,80)) %>%
+  arrange(mass)
+
+
+amv<-read.table(header=TRUE,text="
+Continente 
+America
+")
+
+ContinenteAmerica = cbind(meteoritos_America, amv)
+
+
+meteoritos_Africa <- meteoritosfn %>%
+  filter(between(long, -30,50),
+         between(lat, -60,31)) %>%
+  arrange(mass)
+
+cnf<-read.table(header=TRUE,text="
+Continente 
+Africa
+")
+
+ContinenteAfricano = cbind(meteoritos_Africa, cnf)
+
+
+
+meteoritos_Antartida <- meteoritosfn %>%
+  filter(between(long, -140, 160),
+         between(lat, -85, -60)) %>%
+  arrange(mass)
+
+
+cna<-read.table(header=TRUE,text="
+Continente 
+Antartico
+")
+
+ContinenteAntartico = cbind(meteoritos_Antartida, cna)
+
+
+meteoritos_oceania <- meteoritosfn %>%
+  filter(between(long, 70,180),
+         between(lat, -45,-5)) %>%
+  arrange(mass)
+
+
+cao<-read.table(header=TRUE,text="
+Continente 
+Oceania
+")
+
+ContinenteOceanico = cbind(meteoritos_oceania, cao)
+
+
+
+meteoritos_asia <- meteoritosfn %>%
+  filter(between(long, 45,160),
+         between(lat, -5,80)) %>%
+  arrange(mass)
+
+
+cas<-read.table(header=TRUE,text="
+Continente 
+Asia
+")
+
+ContinenteAsia = cbind(meteoritos_asia, cas)
+
+
+
+df_union<-merge(ContinenteAsia,ContinenteOceanico,all=TRUE)
+df_union1<-merge(df_union, ContinenteAntartico,all=TRUE)
+df_union2<-merge(df_union1, ContinenteAfricano,all=TRUE)
+df_union3<-merge(df_union2, ContinenteAmerica,all=TRUE)
+df_union4<-merge(df_union3, ContinenteEuropa,all=TRUE)
+
+
+meteorites23 <- df_union4 %>%
+  group_by(Continente) %>%
+  summarise(
+    count = n()) %>%
+  arrange(desc(count))
+
+ 
+ggplot(meteorites23) + 
+  geom_bar(aes(x = fct_relevel(Continente, "Antartico", "Africa", "Asia", "America", "Oceania", "Europa"), y = count), 
+    stat='identity', position = 'dodge', fill = c("#9933FF", "Blue", "Forest Green","Gold","red","Dark Orange")) +
+  geom_text(
+    aes(x = Continente, y = count, label = count),
+    position = position_dodge(width = 1),
+    vjust = -0.5, size = 2
+  ) + 
+  theme_clean() +
+    labs(title = "Cantidad de meterioritos segun continente"
+    ,y = "Cantidad",
+       x = "Continente",
+       caption = "Base de datos de meteoritos de la NASA.")
+
+
+```
+
+
+**Discusión:** Comenzamos nuestro análisis: Podemos observar que que el meteorito mas pesado en encuentra en Africa y los segundos mas grande en America. Siendo el contiente Americano el que posee mayor cantidad de meteoritos mas pesados por contiente. Si analizamos la cantidad America la mayor parte de meterioritos fueron encontrados al igual que Antartida, Oceania en Europa y Asia varia un poco mas y en la India es un caso curiosio ya que la mayoria de meterioritos se vio caer y fueron encontrados
+
+Tambien el continente que mas meterioritos encontrados tiene es la Antarctica con 14269 metioritos y el menor Europa con 433 metioritos.
+
+### **Parte 2**
+
+**Pregunta:** ¿Cuales son las cinco clases mas frencuentes a partir del 2000 hasta el 2011?
+
+**Introducción:** Para poder responder a la pregunta debemos observar nuestro conjunto de datos en relacion en la cantidad meteoritos segun su clase y su año para estudiar su crecimiento, podemos observamos la evolución de estos meteoritos segun clase desde sus comienzos en 2000 hasta la 2011 y como fue variando a lo largo del tiempo
+
+**Enfoque:** Empleamos los graficos de columnas ya que hace que las alturas de las barras representen las cantidad e los meteoritos en los datos para realizar el análisis, caracterizando la estructura mediante magnitudes como la cantidad de meteoritos y el año segun clase.
+
+Nos permite usar el grafico tabla nos de un solo vista tener bastante informacion relacion a la clase, cantidad y el año en el que fueron a los meteoritos que fueron encontrados que sus filas son clase	cantidad	y año y sus columnas que contiente los datos
+
+**Analisis:**
+
+```{r cantidad-meteorito-clase-año, fig.alt="Grafico de columnas mostrando con cantidad de meteoritos y su año y su es color es su clases, desde el año 2000 hasta 2011 La mayor parte de meteoritos segun su tipo clase fue en en el 2003 y su menor cantidad en el año 2005 el tipo de la clase L5 es la que tiene mayor predominancia a lo largo del tiempo"}
+top<-meteoritos %>% 
+  subset(year >= 2000 & year <= 2011) %>% 
+  group_by(year, class)   %>% 
+  count(class) %>% 
+  group_by(year) %>%
+  mutate(rank = rank(-n),
+         value_lbl = paste0("", n)) %>% 
+  group_by(class) %>% 
+  filter(rank <=5) %>% 
+  ungroup()
+
+
+
+
+
+ggplot(top, aes(x = year, y = n)) +
+  geom_col(aes(fill = class), position = position_stack(reverse = TRUE))+
+coord_flip()+
+     geom_text(size =2, aes(label = n), hjust = "inward", position = position_stack(vjust = 0.35, reverse = TRUE))+
+    labs(title = "Cantidad de meterioritos segun su clase"
+    ,y = "Cantidad",
+       x = "Años",
+       caption = "Base de datos de meteoritos de la NASA.",
+    fill = "Clase")
+
+
+
+```
+
+```{r tabla-clase-cantidad-año, fig.alt="Tabla que contiene la columnas que son clases, cantidad y años y su filas son los datos que contiente cada columnas y clase menos popular fue L5 en el año 2005 y con la mayor fue 780 en el 2005 y decimos que clase que predomio con mayor es la L5 y la que menor LL6 predominio y Del 2000 hasta el 2006 con expecion del 2005 hay mayor cantidad y variedad de clase siendo el 2005 el año el de menor de cantidad de meteoritos encontrados y el mayor 2003."}
+
+test<-meteoritos%>%
+          mutate(year = as.character(year)) %>%
+          subset(year >= 2000 & year < 2011) %>%
+          group_by(year,class) %>%
+          count(class) %>%
+          group_by(year)%>%     
+          mutate(rank=rank(-n),
+                 value_lbl=paste0("",n)) %>%
+          group_by(class) %>%
+          filter(rank <=1) %>%
+          ungroup()
+
+
+tb2w <-test %>% 
+  select(class, n, year) %>% 
+  arrange(desc(year))
+
+
+tb2 <-
+  kable(tb2w,caption = '<strong><p style="color:#000000";>Clase mas popular segun año</p></strong>', format = 'html',col.names = c("Clase", "Cantidad", "Año"),
+        format.args = list(decimal.mark = ",", big.mark = "."))
+
+
+#tb2 %>% 
+#  row_spec(row = 0, underline = TRUE) %>% 
+#  collapse_rows(columns = 1, valign = "top")  %>%
+#  kable_styling()
+
+```
+
+
+
+**Discusión:** Del 2000 hasta el 2006 con expecion del 2005 hay mayor cantidad y variedad de clase siendo el 2005 el año el de menor de cantidad de meteoritos encontrados y el mayor 2003 y el tipo de la clase mas popular es L5 es la que tiene mayor predominancia a lo largo del tiempo
+
+Tambien el continente que mas meterioritos encontrados tiene es la Antarctica con 14269 metioritos y el menor Europa con 433 metioritos.
+
+Podemos observar en la tabla que la clase menos popular fue L5 en el año 2005 y con la mayor fue 780 en el 2005 que la clase que predomio es es la L5 y la que menor LL6 predominio 
